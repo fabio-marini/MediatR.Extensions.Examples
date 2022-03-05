@@ -17,7 +17,7 @@ namespace MediatR.Extensions.Examples
 {
     public static class ServiceCollectionExtensions
     {
-        // TODO: DevOps build + refactor for automation (get connection string and log level from config)?
+        // TODO: refactor for automation (get connection string and log level from config)?
 
         // 1. PipelineExecutionOnlyTests - models and pipelines
         // 2. MessageTrackingPipelineTest - blob message tracking pipeline (JSON and XML)

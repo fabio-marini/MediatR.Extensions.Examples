@@ -15,7 +15,7 @@
     <PackageReference Include="MediatR.Extensions.Azure.Storage.Blobs" Version="1.0.0" />
     <PackageReference Include="MediatR.Extensions.Azure.Storage.Queues" Version="1.0.0" />
     <PackageReference Include="MediatR.Extensions.Azure.Storage.Tables" Version="1.0.0" />
-    <PackageReference Include="MediatR.Extensions.Azure.ServiceBus.Core" Version="1.0.0-ci.20220302.7" />
+    <PackageReference Include="MediatR.Extensions.Azure.ServiceBus" Version="1.0.0-ci.20220305.4" />
   </ItemGroup>
 
 </Project>
