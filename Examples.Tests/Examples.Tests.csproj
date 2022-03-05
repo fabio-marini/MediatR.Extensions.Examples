@@ -30,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MediatR.Extensions.Examples\MediatR.Extensions.Examples.csproj" />
+    <ProjectReference Include="..\Examples\Examples.csproj" />
   </ItemGroup>
 
 </Project>
