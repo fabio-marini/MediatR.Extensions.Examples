@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace MediatR.Extensions.Examples
 {
-    public class ManagementFixture
+    public class AdminFixture
     {
         private readonly ServiceBusAdministrationClient adminClient;
 
-        public ManagementFixture(ServiceBusAdministrationClient adminClient)
+        public AdminFixture(ServiceBusAdministrationClient adminClient)
         {
             this.adminClient = adminClient;
         }
@@ -45,6 +45,21 @@ namespace MediatR.Extensions.Examples
                 var runtimeInfo = await adminClient.GetQueueRuntimePropertiesAsync(queuePath);
 
                 return runtimeInfo.Value.TotalMessageCount;
+            });
+
+            messageCount.Should().Be(expectedCount);
+        }
+
+        public async Task QueueHasScheduledMessages(string queuePath, int expectedCount)
+        {
+            var retryPolicy = Policy.HandleResult<long>(res => res != expectedCount)
+                .WaitAndRetryAsync(5, x => TimeSpan.FromMilliseconds(500));
+
+            var messageCount = await retryPolicy.ExecuteAsync(async () =>
+            {
+                var runtimeInfo = await adminClient.GetQueueRuntimePropertiesAsync(queuePath);
+
+                return runtimeInfo.Value.ScheduledMessageCount;
             });
 
             messageCount.Should().Be(expectedCount);

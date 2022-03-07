@@ -35,6 +35,7 @@ namespace MediatR.Extensions.Examples
             var req1 = new ContosoCustomerRequest
             {
                 MessageId = Guid.NewGuid().ToString(),
+                CorrelationId = Guid.NewGuid().ToString(),
                 ContosoCustomer = new ContosoCustomer
                 {
                     FirstName = "Fabio",
@@ -45,7 +46,7 @@ namespace MediatR.Extensions.Examples
 
             var res1 = await med.Send(req1);
 
-            res1.MessageId.Should().Be(req1.MessageId);
+            res1.CorrelationId.Should().Be(req1.CorrelationId);
 
             res1.CanonicalCustomer.Should().NotBeNull();
             res1.CanonicalCustomer.FullName.Should().Be("Fabio Marini");
@@ -53,13 +54,13 @@ namespace MediatR.Extensions.Examples
 
             var req2 = new FabrikamCustomerRequest
             {
-                MessageId = req1.MessageId,
+                MessageId = Guid.NewGuid().ToString(),
                 CanonicalCustomer = res1.CanonicalCustomer
             };
 
             var res2 = await med.Send(req2);
 
-            res2.MessageId.Should().Be(req2.MessageId);
+            res2.CorrelationId.Should().Be(req2.CorrelationId);
 
             res2.FabrikamCustomer.Should().NotBeNull();
             res2.FabrikamCustomer.FullName.Should().Be("Fabio Marini");

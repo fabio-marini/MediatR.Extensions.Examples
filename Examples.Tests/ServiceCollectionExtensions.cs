@@ -36,7 +36,7 @@ namespace MediatR.Extensions.Examples
                         .Build();
                 })
 
-                .AddOptions<TestOutputLoggerOptions>().Configure(opt => opt.MinimumLogLevel = LogLevel.Information)
+                .AddOptions<TestOutputLoggerOptions>().Configure(opt => opt.MinimumLogLevel = LogLevel.Debug)
                 .Services
 
                 .AddTransient<ITestOutputHelper>(sp => log)
@@ -73,7 +73,7 @@ namespace MediatR.Extensions.Examples
 
                     return new ServiceBusAdministrationClient(cfg.GetValue<string>("AzureWebJobsServiceBus"));
                 })
-                .AddTransient<ManagementFixture>()
+                .AddTransient<AdminFixture>()
 
                 // messaging client used by senders/receivers
                 .AddTransient<ServiceBusClient>(sp =>

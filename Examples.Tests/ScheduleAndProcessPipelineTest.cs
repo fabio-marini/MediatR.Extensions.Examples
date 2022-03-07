@@ -10,19 +10,31 @@ namespace MediatR.Extensions.Examples
 {
     [Trait("TestCategory", "Integration"), Collection("Examples")]
     [TestCaseOrderer("MediatR.Extensions.Tests.TestMethodNameOrderer", "Timeless.Testing.Xunit")]
-    public class ServiceBusQueuePipelineTest : IAsyncDisposable
+    public class ScheduleAndProcessPipelineTest : IClassFixture<SequenceNumbersFixture>, IAsyncDisposable
     {
+        // TODO: document pipelines in repo readme!
+
+        // TODO: extend admin fixture to check active (bug where active = 3 and scheduled = -3
+        //       happens when running all tests at once)
+
+        // FIXME: xunit logger should print exception details; omit enqueue time to reproduce 
+        //        (exception is thrown before any debug statements are printed!)
+        // TODO: repeat cancel tests with topics or use topics for "cancel some" tests?
+
+        // TODO: could this pipeline be redesigned as a transaction/compensation scenario?
+        // FIXME: what happens when a receive command is executed against a queue with no messages?
         private readonly IServiceProvider serviceProvider;
         private readonly AdminFixture adminFixture;
         private const string MediatorQueue = "mediator-queue";
+        private const double EnqueueOffset = 3;
 
-        public ServiceBusQueuePipelineTest(ITestOutputHelper log)
+        public ScheduleAndProcessPipelineTest(ITestOutputHelper log)
         {
             serviceProvider = new ServiceCollection()
 
                 .AddCoreDependencies(log)
-                .AddContosoSenderPipeline()
-                .AddFabrikamReceiverPipeline()
+                .AddContosoSchedulePipeline(EnqueueOffset)
+                .AddFabrikamSchedulePipeline()
 
                 .AddTransient<ServiceBusSender>(sp =>
                 {
@@ -68,11 +80,19 @@ namespace MediatR.Extensions.Examples
             res.CorrelationId.Should().Be(req.CorrelationId);
         }
 
-        [Fact(DisplayName = "03. Queue has messages")]
-        public async Task Step03() => await adminFixture.QueueHasMessages(MediatorQueue, 1);
+        [Fact(DisplayName = "03. Queue has scheduled messages")]
+        public async Task Step03() => await adminFixture.QueueHasScheduledMessages(MediatorQueue, 1);
 
-        [Fact(DisplayName = "04. Fabrikam pipeline is executed")]
+        [Fact(DisplayName = "04. Messages are delivered")]
         public async Task Step04()
+        {
+            await Task.Delay(((int)EnqueueOffset) * 1000);
+
+            await adminFixture.QueueHasMessages(MediatorQueue, 1);
+        }
+
+        [Fact(DisplayName = "05. Fabrikam pipeline is executed")]
+        public async Task Step05()
         {
             var med = serviceProvider.GetRequiredService<IMediator>();
 
@@ -86,8 +106,8 @@ namespace MediatR.Extensions.Examples
             res.CorrelationId.Should().Be(req.CorrelationId);
         }
 
-        [Fact(DisplayName = "05. Queue has messages")]
-        public async Task Step05() => await adminFixture.QueueHasMessages(MediatorQueue, 0);
+        [Fact(DisplayName = "06. Queue has messages")]
+        public async Task Step06() => await adminFixture.QueueHasMessages(MediatorQueue, 0);
 
         public async ValueTask DisposeAsync()
         {

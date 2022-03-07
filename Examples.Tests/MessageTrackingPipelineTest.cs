@@ -48,7 +48,7 @@ namespace MediatR.Extensions.Examples
 
             var res = await med.Send(req);
 
-            res.MessageId.Should().Be(req.MessageId);
+            res.CorrelationId.Should().Be(req.CorrelationId);
         }
 
         [Fact(DisplayName = "03. Messages container has blobs")]
@@ -71,7 +71,7 @@ namespace MediatR.Extensions.Examples
 
             var res = await med.Send(req);
 
-            res.MessageId.Should().Be(req.MessageId);
+            res.CorrelationId.Should().Be(req.CorrelationId);
         }
 
         [Fact(DisplayName = "05. Messages container has blobs")]

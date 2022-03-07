@@ -27,12 +27,12 @@ namespace MediatR.Extensions.Examples
                 throw new ArgumentException("MessageId is required! :(");
             }
 
-            if (ctx.ContainsKey(ContextKeys.FabrikamCustomer) == false)
+            if (ctx.ContainsKey(request.MessageId) == false)
             {
                 throw new Exception("No Fabrikam customer found in pipeline context");
             }
 
-            var fabrikamCustomer = (FabrikamCustomer)ctx[ContextKeys.FabrikamCustomer];
+            var fabrikamCustomer = (FabrikamCustomer)ctx[request.MessageId];
 
             fabrikamCustomer.DateOfBirth = new DateTime(1970, 10, 26);
 

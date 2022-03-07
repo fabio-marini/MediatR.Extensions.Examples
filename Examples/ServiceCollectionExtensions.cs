@@ -18,6 +18,15 @@ namespace MediatR.Extensions.Examples
     public static class ServiceCollectionExtensions
     {
         // TODO: refactor for automation (get connection string and log level from config)?
+        // FIXME: cannot use messageId as a context key - some pipelines use it for correlation! Using a constant 
+        //        context key might not work either when the same pipeline is executed for multiple messages...
+        //        messageIdf should be unique for each message - don't use for correlation!
+
+        // TODO: update storage extension commands and tests to use Invoke() on delegates?
+        // TODO: ideally all options should be verified - use mock behavior strict?
+        // TODO: validate options in commands ctors using ?? (coalesce)
+
+        // TODO: SB docs + release + examples docs, i.e. what does each pipeline do?
 
         // 1. PipelineExecutionOnlyTests - models and pipelines
         // 2. MessageTrackingPipelineTest - blob message tracking pipeline (JSON and XML)
@@ -33,9 +42,12 @@ namespace MediatR.Extensions.Examples
         // TODO: process expired message from DLQ + batching?
 
         // TODO: manage the list of messages to be cancelled (i.e. seq numbers) using separate components in the pipeline
-        //       - scenario 1: schedule and cancel in the same pipeline - can use context
         //       - scenario 2: schedule and cancel in different pipelines - use persistence
         //       - scenario 3: cancel scheduled messages based on request (delete from persistence store or cancel message)
+
+        // TODO: schedule 3 x contoso customer requests, then cancel 1 x contoso customer requests + process 2 x fabrikam 
+
+        // contoso schedules messages for fabrikam; if validation/transform takes too long, cancel message
 
         public static IServiceCollection AddContosoRequestPipeline(this IServiceCollection services)
         {
@@ -196,7 +208,7 @@ namespace MediatR.Extensions.Examples
                 {
                     return new CustomerActivityEntity
                     {
-                        PartitionKey = req.MessageId,
+                        PartitionKey = req.CorrelationId,
                         RowKey = Guid.NewGuid().ToString(),
                         ContosoStarted = DateTime.Now,
                         Email = req.ContosoCustomer.Email
@@ -214,7 +226,7 @@ namespace MediatR.Extensions.Examples
                 {
                     return new CustomerActivityEntity
                     {
-                        PartitionKey = req.MessageId,
+                        PartitionKey = req.CorrelationId,
                         RowKey = Guid.NewGuid().ToString(),
                         IsValid = true,
                         ContosoFinished = DateTime.Now,
@@ -259,7 +271,7 @@ namespace MediatR.Extensions.Examples
                 {
                     return new CustomerActivityEntity
                     {
-                        PartitionKey = req.MessageId,
+                        PartitionKey = req.CorrelationId,
                         RowKey = Guid.NewGuid().ToString(),
                         FabrikamStarted = DateTime.Now
                     };
@@ -276,7 +288,7 @@ namespace MediatR.Extensions.Examples
                 {
                     return new CustomerActivityEntity
                     {
-                        PartitionKey = res.MessageId,
+                        PartitionKey = res.CorrelationId,
                         RowKey = Guid.NewGuid().ToString(),
                         DateOfBirth = res.FabrikamCustomer.DateOfBirth,
                         FabrikamFinished = DateTime.Now
@@ -318,11 +330,11 @@ namespace MediatR.Extensions.Examples
                 var blb = svc.GetRequiredService<BlobContainerClient>();
 
                 opt.IsEnabled = cfg.GetValue<bool>("TrackingEnabled");
-                opt.BlobClient = (req, ctx) => blb.GetBlobClient($"canonical/{req.MessageId}.json");
+                opt.BlobClient = (req, ctx) => blb.GetBlobClient($"canonical/{req.CorrelationId}.json");
                 opt.BlobContent = (req, ctx) =>
                 {
-            // leave only the messageId
-            req.ContosoCustomer = null;
+                    // leave only the messageId
+                    req.ContosoCustomer = null;
 
                     return BinaryData.FromString(JsonConvert.SerializeObject(req));
                 };
@@ -346,7 +358,7 @@ namespace MediatR.Extensions.Examples
                 var blb = svc.GetRequiredService<BlobContainerClient>();
 
                 opt.IsEnabled = cfg.GetValue<bool>("TrackingEnabled");
-                opt.BlobClient = (req, ctx) => blb.GetBlobClient($"canonical/{req.MessageId}.json");
+                opt.BlobClient = (req, ctx) => blb.GetBlobClient($"canonical/{req.CorrelationId}.json");
                 opt.Downloaded = (res, ctx, req) =>
                 {
                     var canonicalCustomer = res.Content.ToString();
@@ -409,6 +421,56 @@ namespace MediatR.Extensions.Examples
             services.AddTransient<IPipelineBehavior<FabrikamCustomerRequest, FabrikamCustomerResponse>, EnrichFabrikamCustomerBehavior>();
 
             return services;
+        }
+
+        public static IServiceCollection AddContosoSchedulePipeline(this IServiceCollection services, double enqueueOffsetInSeconds)
+        {
+            services.AddTransient<ScheduleMessageCommand<ContosoCustomerResponse>>();
+
+            services.AddOptions<MessageOptions<ContosoCustomerResponse>>().Configure<IServiceProvider>((opt, svc) =>
+            {
+                var cfg = svc.GetRequiredService<IConfiguration>();
+
+                opt.IsEnabled = cfg.GetValue<bool>("TrackingEnabled");
+                opt.Sender = svc.GetRequiredService<ServiceBusSender>();
+                opt.EnqueueTime = (req, ctx) => DateTimeOffset.UtcNow.AddSeconds(enqueueOffsetInSeconds);
+                opt.Scheduled = (seq, msg, ctx, res) =>
+                {
+                    ctx.Add(res.CanonicalCustomer.Email, seq);
+
+                    return Task.CompletedTask;
+                };
+            });
+
+            services.AddTransient<IPipelineBehavior<ContosoCustomerRequest, ContosoCustomerResponse>, ValidateContosoCustomerBehavior>();
+            services.AddTransient<IPipelineBehavior<ContosoCustomerRequest, ContosoCustomerResponse>, TransformContosoCustomerBehavior>();
+            services.AddTransient<IPipelineBehavior<ContosoCustomerRequest, ContosoCustomerResponse>, ScheduleMessageResponseBehavior<ContosoCustomerRequest, ContosoCustomerResponse>>();
+
+            return services;
+        }
+
+        public static IServiceCollection AddFabrikamCancelPipeline(this IServiceCollection services)
+        {
+            services.AddTransient<CancelMessageCommand<FabrikamCustomerRequest>>();
+
+            services.AddOptions<MessageOptions<FabrikamCustomerRequest>>().Configure<IServiceProvider>((opt, svc) =>
+            {
+                var cfg = svc.GetRequiredService<IConfiguration>();
+
+                opt.IsEnabled = cfg.GetValue<bool>("TrackingEnabled");
+                opt.Sender = svc.GetRequiredService<ServiceBusSender>();
+                opt.SequenceNumber = (ctx, res) => (long)ctx[res.CanonicalCustomer.Email];
+            });
+
+            services.AddTransient<IPipelineBehavior<FabrikamCustomerRequest, FabrikamCustomerResponse>, CancelMessageRequestBehavior<FabrikamCustomerRequest, FabrikamCustomerResponse>>();
+
+            return services;
+        }
+
+        public static IServiceCollection AddFabrikamSchedulePipeline(this IServiceCollection services)
+        {
+            // just process the delivered messages normally (i.e. those that were not cancelled)
+            return services.AddFabrikamReceiverPipeline();
         }
     }
 }

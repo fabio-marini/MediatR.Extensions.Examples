@@ -10,12 +10,16 @@ namespace MediatR.Extensions.Examples
     public class FabrikamCustomerResponse
     {
         public string MessageId { get; set; }
+        public string CorrelationId { get; set; }
+
         public FabrikamCustomer FabrikamCustomer { get; set; }
     }
 
     public class FabrikamCustomerRequest : IRequest<FabrikamCustomerResponse>
     {
         public string MessageId { get; set; }
+        public string CorrelationId { get; set; }
+
         public CanonicalCustomer CanonicalCustomer { get; set; }
     }
 
@@ -32,15 +36,16 @@ namespace MediatR.Extensions.Examples
 
         public Task<FabrikamCustomerResponse> Handle(FabrikamCustomerRequest request, CancellationToken cancellationToken)
         {
-            if (ctx.ContainsKey(ContextKeys.FabrikamCustomer) == false)
+            if (ctx.ContainsKey(request.MessageId) == false)
             {
                 throw new Exception("No Fabrikam customer found in pipeline context");
             }
 
             var res = new FabrikamCustomerResponse
             {
-                MessageId = request.MessageId,
-                FabrikamCustomer = (FabrikamCustomer)ctx[ContextKeys.FabrikamCustomer]
+                MessageId = Guid.NewGuid().ToString(),
+                CorrelationId = request.CorrelationId,
+                FabrikamCustomer = (FabrikamCustomer)ctx[request.MessageId]
             };
 
             log.LogInformation("Handler {Handler} completed, returning", this.GetType().Name);

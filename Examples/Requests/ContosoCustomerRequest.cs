@@ -10,12 +10,16 @@ namespace MediatR.Extensions.Examples
     public class ContosoCustomerResponse
     {
         public string MessageId { get; set; }
+        public string CorrelationId { get; set; }
+
         public CanonicalCustomer CanonicalCustomer { get; set; }
     }
 
     public class ContosoCustomerRequest : IRequest<ContosoCustomerResponse>
     {
         public string MessageId { get; set; }
+        public string CorrelationId { get; set; }
+
         public ContosoCustomer ContosoCustomer { get; set; }
     }
 
@@ -32,15 +36,16 @@ namespace MediatR.Extensions.Examples
 
         public Task<ContosoCustomerResponse> Handle(ContosoCustomerRequest request, CancellationToken cancellationToken)
         {
-            if (ctx.ContainsKey(ContextKeys.CanonicalCustomer) == false)
+            if (ctx.ContainsKey(request.MessageId) == false)
             {
                 throw new Exception("No canonical customer found in pipeline context");
             }
 
             var res = new ContosoCustomerResponse
             {
-                MessageId = request.MessageId,
-                CanonicalCustomer = (CanonicalCustomer)ctx[ContextKeys.CanonicalCustomer]
+                MessageId = Guid.NewGuid().ToString(),
+                CorrelationId = request.CorrelationId,
+                CanonicalCustomer = (CanonicalCustomer)ctx[request.MessageId]
             };
 
             log.LogInformation("Handler {Handler} completed, returning", this.GetType().Name);

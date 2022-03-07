@@ -26,7 +26,7 @@ namespace MediatR.Extensions.Examples
                 Email = request.CanonicalCustomer.Email
             };
 
-            ctx.Add(ContextKeys.FabrikamCustomer, fabrikamCustomer);
+            ctx.Add(request.MessageId, fabrikamCustomer);
 
             log.LogInformation("Behavior {Behavior} completed", this.GetType().Name);
 

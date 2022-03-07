@@ -10,10 +10,10 @@ namespace MediatR.Extensions.Examples
 {
     [Trait("TestCategory", "Integration"), Collection("Examples")]
     [TestCaseOrderer("MediatR.Extensions.Tests.TestMethodNameOrderer", "Timeless.Testing.Xunit")]
-    public class ServiceBusTopicPipelineTest
+    public class ServiceBusTopicPipelineTest : IAsyncDisposable
     {
         private readonly IServiceProvider serviceProvider;
-        private readonly ManagementFixture adminFixture;
+        private readonly AdminFixture adminFixture;
         private const string MediatorTopic = "mediator-topic";
         private const string MediatorSubscription = "mediator-subscription";
 
@@ -42,7 +42,7 @@ namespace MediatR.Extensions.Examples
 
                 .BuildServiceProvider();
 
-            adminFixture = serviceProvider.GetRequiredService<ManagementFixture>();
+            adminFixture = serviceProvider.GetRequiredService<AdminFixture>();
         }
 
         [Fact(DisplayName = "01. Topic is recreated")]
@@ -66,7 +66,7 @@ namespace MediatR.Extensions.Examples
 
             var res = await med.Send(req);
 
-            res.MessageId.Should().Be(req.MessageId);
+            res.CorrelationId.Should().Be(req.CorrelationId);
         }
 
         [Fact(DisplayName = "03. Subscription has messages")]
@@ -84,10 +84,16 @@ namespace MediatR.Extensions.Examples
 
             var res = await med.Send(req);
 
-            res.MessageId.Should().Be(req.MessageId);
+            res.CorrelationId.Should().Be(req.CorrelationId);
         }
 
         [Fact(DisplayName = "05. Subscription has messages")]
         public async Task Step05() => await adminFixture.SubscriptionHasMessages(MediatorTopic, MediatorSubscription, 0);
+
+        public async ValueTask DisposeAsync()
+        {
+            await serviceProvider.GetRequiredService<ServiceBusSender>().CloseAsync();
+            await serviceProvider.GetRequiredService<ServiceBusReceiver>().CloseAsync();
+        }
     }
 }

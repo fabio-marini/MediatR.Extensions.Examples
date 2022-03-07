@@ -40,7 +40,8 @@ namespace MediatR.Extensions.Examples
 
             var req = new ContosoCustomerRequest
             {
-                MessageId = correlationId,
+                MessageId = Guid.NewGuid().ToString(),
+                CorrelationId = correlationId,
                 ContosoCustomer = new ContosoCustomer
                 {
                     FirstName = "Fabio",
@@ -51,7 +52,7 @@ namespace MediatR.Extensions.Examples
 
             var res = await med.Send(req);
 
-            res.MessageId.Should().Be(req.MessageId);
+            res.CorrelationId.Should().Be(req.CorrelationId);
         }
 
         [Fact(DisplayName = "03. Claim checks container has blobs")]
@@ -64,12 +65,13 @@ namespace MediatR.Extensions.Examples
 
             var req = new FabrikamCustomerRequest
             {
-                MessageId = correlationId
+                MessageId = Guid.NewGuid().ToString(),
+                CorrelationId = correlationId,
             };
 
             var res = await med.Send(req);
 
-            res.MessageId.Should().Be(req.MessageId);
+            res.CorrelationId.Should().Be(req.CorrelationId);
         }
 
         [Fact(DisplayName = "05. Claim checks container is empty")]
