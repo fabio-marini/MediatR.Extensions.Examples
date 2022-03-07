@@ -2,6 +2,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -81,7 +82,10 @@ namespace MediatR.Extensions.Examples
                 MessageId = Guid.NewGuid().ToString()
             };
 
-            var res = await med.Send(req);
+            // cancel operation if no message is received within the specified delay
+            var src = new CancellationTokenSource(5000);
+
+            var res = await med.Send(req, src.Token);
 
             res.CorrelationId.Should().Be(req.CorrelationId);
         }

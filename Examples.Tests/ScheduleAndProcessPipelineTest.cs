@@ -2,6 +2,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -12,17 +13,6 @@ namespace MediatR.Extensions.Examples
     [TestCaseOrderer("MediatR.Extensions.Tests.TestMethodNameOrderer", "Timeless.Testing.Xunit")]
     public class ScheduleAndProcessPipelineTest : IClassFixture<SequenceNumbersFixture>, IAsyncDisposable
     {
-        // TODO: document pipelines in repo readme!
-
-        // TODO: extend admin fixture to check active (bug where active = 3 and scheduled = -3
-        //       happens when running all tests at once)
-
-        // FIXME: xunit logger should print exception details; omit enqueue time to reproduce 
-        //        (exception is thrown before any debug statements are printed!)
-        // TODO: repeat cancel tests with topics or use topics for "cancel some" tests?
-
-        // TODO: could this pipeline be redesigned as a transaction/compensation scenario?
-        // FIXME: what happens when a receive command is executed against a queue with no messages?
         private readonly IServiceProvider serviceProvider;
         private readonly AdminFixture adminFixture;
         private const string MediatorQueue = "mediator-queue";
@@ -86,7 +76,7 @@ namespace MediatR.Extensions.Examples
         [Fact(DisplayName = "04. Messages are delivered")]
         public async Task Step04()
         {
-            await Task.Delay(((int)EnqueueOffset) * 1000);
+            await Task.Delay(1000);
 
             await adminFixture.QueueHasMessages(MediatorQueue, 1);
         }
@@ -101,7 +91,10 @@ namespace MediatR.Extensions.Examples
                 MessageId = Guid.NewGuid().ToString()
             };
 
-            var res = await med.Send(req);
+            // cancel operation if no message is received within the specified delay
+            var src = new CancellationTokenSource(5000);
+
+            var res = await med.Send(req, src.Token);
 
             res.CorrelationId.Should().Be(req.CorrelationId);
         }

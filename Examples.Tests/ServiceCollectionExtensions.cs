@@ -7,6 +7,7 @@ using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Xunit.Abstractions;
@@ -36,7 +37,12 @@ namespace MediatR.Extensions.Examples
                         .Build();
                 })
 
-                .AddOptions<TestOutputLoggerOptions>().Configure(opt => opt.MinimumLogLevel = LogLevel.Debug)
+                .AddOptions<TestOutputLoggerOptions>().Configure<IServiceProvider>((opt, sp) =>
+                {
+                    var cfg = sp.GetRequiredService<IConfiguration>();
+
+                    opt.MinimumLogLevel = cfg.GetValue<LogLevel>("MinimumLogLevel");
+                })
                 .Services
 
                 .AddTransient<ITestOutputHelper>(sp => log)
@@ -47,7 +53,9 @@ namespace MediatR.Extensions.Examples
                 // used for message tracking and claim checks
                 .AddTransient<BlobContainerClient>(sp =>
                 {
-                    var blobclient = new BlobContainerClient("UseDevelopmentStorage=true", "integration-tests");
+                    var cfg = sp.GetRequiredService<IConfiguration>();
+
+                    var blobclient = new BlobContainerClient(cfg.GetValue<string>("AzureWebJobsStorage"), "integration-tests");
                     blobclient.CreateIfNotExists();
 
                     return blobclient;
@@ -57,7 +65,9 @@ namespace MediatR.Extensions.Examples
                 // used for activity tracking
                 .AddTransient<CloudTable>(sp =>
                 {
-                    var storageAccount = CloudStorageAccount.DevelopmentStorageAccount;
+                    var cfg = sp.GetRequiredService<IConfiguration>();
+
+                    var storageAccount = CloudStorageAccount.Parse(cfg.GetValue<string>("AzureWebJobsStorage"));
 
                     var cloudTable = storageAccount.CreateCloudTableClient().GetTableReference("IntegrationTests");
                     cloudTable.CreateIfNotExists();

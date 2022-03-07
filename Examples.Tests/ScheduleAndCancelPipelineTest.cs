@@ -17,7 +17,7 @@ namespace MediatR.Extensions.Examples
         private readonly SequenceNumbersFixture sequenceNumbers;
         private readonly AdminFixture adminFixture;
         private const string MediatorQueue = "mediator-queue";
-        private const double EnqueueOffset = 5;
+        private const double EnqueueOffset = 120;
 
         public ScheduleAndCancelPipelineTest(ITestOutputHelper log, SequenceNumbersFixture sequenceNumbers)
         {

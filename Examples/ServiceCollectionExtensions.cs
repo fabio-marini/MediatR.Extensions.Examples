@@ -17,37 +17,54 @@ namespace MediatR.Extensions.Examples
 {
     public static class ServiceCollectionExtensions
     {
-        // TODO: refactor for automation (get connection string and log level from config)?
-        // FIXME: cannot use messageId as a context key - some pipelines use it for correlation! Using a constant 
-        //        context key might not work either when the same pipeline is executed for multiple messages...
-        //        messageIdf should be unique for each message - don't use for correlation!
+        #region Examples TODOs and Ideas
 
-        // TODO: update storage extension commands and tests to use Invoke() on delegates?
-        // TODO: ideally all options should be verified - use mock behavior strict?
+        // TODO: extend admin fixture to check active (bug where active = 3 and scheduled = -3 happens when running all tests at once)
+
+        // TODO: document pipelines in repo readme!
+
+        // TODO: transaction/compensation scenario?
+        // TODO: process expired message from DLQ + batching?
+        // TODO: schedule/cancel: store sequence numbers in table + schedule multiple messages, only cancel some
+        // TODO: repeat cancel tests with topics or use topics for "cancel some" tests?
+
+        #endregion
+
+        #region Other TODOs
+
+        // TODO: SB docs + release
+
+        // FIXME: xunit logger should print exception details; omit enqueue time to reproduce 
+        //        (exception is thrown before any debug statements are printed, leaving only the exception message)
+
+        // TODO: update storage extension commands and tests to use Invoke() on delegates that return a value?
+
+        // TODO: simplify unit tests: call Verify() on all setup and remove manual verification +
+        //       only verify that command method is called, e.g. SendAsync
+        // TODO: use mock behavior strict (All invocations on the mock must have a corresponding setup)?
         // TODO: validate options in commands ctors using ?? (coalesce)
 
-        // TODO: SB docs + release + examples docs, i.e. what does each pipeline do?
+        // TODO: abstractions - should they rethrow the exception instead of adding it to ctx (make ctx not optional!)?
 
-        // 1. PipelineExecutionOnlyTests - models and pipelines
-        // 2. MessageTrackingPipelineTest - blob message tracking pipeline (JSON and XML)
-        // 3. ActivityTrackingPipelineTest - table activity tracking pipeline (JSON and XML)
-        // 4. MessageClaimCheckPipelineTest - blob claim check pipeline
-        // 5. ExceptionHandlingPipelineTest - error pipelines
-        // 6. ServiceBusQueuePipelineTest - send/receive using a SB queue
-        // 7. ServiceBusTopicPipelineTest - send/receive using a SB topic/subscription
+        #endregion
 
+        #region Examples Overview and Other Extensions
+
+        //  1. PipelineExecutionOnlyTests - models and pipelines
+        //  2. MessageTrackingPipelineTest - blob message tracking pipeline (JSON and XML)
+        //  3. ActivityTrackingPipelineTest - table activity tracking pipeline (JSON and XML)
+        //  4. MessageClaimCheckPipelineTest - blob claim check pipeline
+        //  5. ExceptionHandlingPipelineTest - error pipelines
+        //  6. ServiceBusQueuePipelineTest - send/receive using a SB queue
+        //  7. ServiceBusTopicPipelineTest - send/receive using a SB topic/subscription
+        //  8. ScheduleAndProcessPipelineTest - schedule message and process
+        //  9. ScheduleAndCancelPipelineTest - schedule message and cancel
+
+        // TODO: HTTP request/response messages?
         // TODO: persistence points to enable edit and resubmit?
         // TODO: sign/verify and encrypt/decrypt using certs?
 
-        // TODO: process expired message from DLQ + batching?
-
-        // TODO: manage the list of messages to be cancelled (i.e. seq numbers) using separate components in the pipeline
-        //       - scenario 2: schedule and cancel in different pipelines - use persistence
-        //       - scenario 3: cancel scheduled messages based on request (delete from persistence store or cancel message)
-
-        // TODO: schedule 3 x contoso customer requests, then cancel 1 x contoso customer requests + process 2 x fabrikam 
-
-        // contoso schedules messages for fabrikam; if validation/transform takes too long, cancel message
+        #endregion
 
         public static IServiceCollection AddContosoRequestPipeline(this IServiceCollection services)
         {
@@ -410,6 +427,11 @@ namespace MediatR.Extensions.Examples
                 opt.Receiver = svc.GetRequiredService<ServiceBusReceiver>();
                 opt.Received = (msg, ctx, req) =>
                 {
+                    if (msg == null)
+                    {
+                        throw new ArgumentNullException("No message was received");
+                    }
+
                     req.CanonicalCustomer = JsonConvert.DeserializeObject<CanonicalCustomer>(msg.Body.ToString());
 
                     return Task.CompletedTask;
