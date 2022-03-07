@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 namespace MediatR.Extensions.Examples
 {
     [Trait("TestCategory", "Integration"), Collection("Examples")]
-    [TestCaseOrderer("MediatR.Extensions.Tests.TestMethodNameOrderer", "Timeless.Testing.Xunit")]
+    [TestCaseOrderer("Timeless.Testing.Xunit.TestMethodNameOrderer", "Timeless.Testing.Xunit")]
     public class ScheduleAndProcessPipelineTest : IClassFixture<SequenceNumbersFixture>, IAsyncDisposable
     {
         private readonly IServiceProvider serviceProvider;

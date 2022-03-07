@@ -2,7 +2,6 @@
 using Azure.Messaging.ServiceBus.Administration;
 using Azure.Storage.Blobs;
 using MediatR.Extensions.Abstractions;
-using MediatR.Extensions.Azure.Storage.Examples;
 using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Timeless.Testing.Xunit;
 using Xunit.Abstractions;
 
 namespace MediatR.Extensions.Examples

@@ -17,6 +17,8 @@ namespace MediatR.Extensions.Examples
 {
     public static class ServiceCollectionExtensions
     {
+        // TODO: update all extensions test projects to use latest xunit logger (fix orderers namespaces)
+
         #region Examples TODOs and Ideas
 
         // TODO: extend admin fixture to check active (bug where active = 3 and scheduled = -3 happens when running all tests at once)
@@ -34,9 +36,6 @@ namespace MediatR.Extensions.Examples
 
         // TODO: SB docs + release
 
-        // FIXME: xunit logger should print exception details; omit enqueue time to reproduce 
-        //        (exception is thrown before any debug statements are printed, leaving only the exception message)
-
         // TODO: update storage extension commands and tests to use Invoke() on delegates that return a value?
 
         // TODO: simplify unit tests: call Verify() on all setup and remove manual verification +
@@ -45,6 +44,8 @@ namespace MediatR.Extensions.Examples
         // TODO: validate options in commands ctors using ?? (coalesce)
 
         // TODO: abstractions - should they rethrow the exception instead of adding it to ctx (make ctx not optional!)?
+
+        // TODO: refactor all integration tests to use test fixtures and remove the need for orderers (create a snippet instead)
 
         #endregion
 
